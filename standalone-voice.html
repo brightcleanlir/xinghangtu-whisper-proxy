@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>星航图 - 语音记录测试</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #f6faf8;
+      --surface: #fffffff0;
+      --ink: #10201d;
+      --soft: #5f716d;
+      --teal: #16a38b;
+      --deep: #123d35;
+      --line: rgba(38,86,75,.12);
+      --shadow: 0 24px 70px rgba(26,64,55,.1);
+      --radius: 22px;
+    }
+
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .app {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* 顶部栏 */
+    .header {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      color: var(--deep);
+    }
+
+    .header .version {
+      font-size: 13px;
+      color: var(--soft);
+      background: #edf7f5;
+      padding: 4px 12px;
+      border-radius: 999px;
+    }
+
+    /* 服务器状态 */
+    .server-status {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .server-status .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .server-status .dot.connected { background: #22c55e; }
+    .server-status .dot.disconnected { background: #ef4444; }
+    .server-status .dot.checking { background: #f59e0b; animation: pulse 1s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* 输入区 */
+    .input-area {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .input-area h2 {
+      font-size: 18px;
+      color: var(--deep);
+      margin-bottom: 16px;
+    }
+
+    .voice-row {
+      display: grid;
+      grid-template-columns: 1fr 130px;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fff, #f8fcfb);
+      font-size: 16px;
+      font-family: inherit;
+      line-height: 1.7;
+      color: var(--ink);
+      resize: vertical;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 4px rgba(22,163,139,0.1);
+    }
+
+    .voice-side {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .voice-btn {
+      flex: 1;
+      min-height: 100px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(180deg, #f4fffb, #e2f8f4);
+      color: var(--deep);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 8px;
+      font-weight: 800;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .voice-btn:hover {
+      background: linear-gradient(180deg, #e8fff8, #d4f5ef);
+      transform: translateY(-1px);
+    }
+
+    .voice-btn.listening {
+      background: linear-gradient(135deg, var(--deep), #1e7d6d);
+      color: #fff;
+      animation: pulse 1.5s infinite;
+    }
+
+    .voice-btn svg { width: 28px; height: 28px; }
+    .voice-btn span { font-size: 14px; }
+
+    /* 模式切换 */
+    .mode-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .mode-tab {
+      padding: 8px 18px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--soft);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-tab.active {
+      background: var(--deep);
+      color: #fff;
+      border-color: var(--deep);
+    }
+
+    .mode-tab:hover:not(.active) {
+      background: #f0f7f5;
+    }
+
+    /* 状态显示 */
+    .voice-status {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: #e8fbf5;
+      color: #116554;
+      font-size: 14px;
+      display: none;
+    }
+
+    .voice-status.show { display: block; }
+    .voice-status.error { background: #fef2f2; color: #dc2626; }
+
+    /* 操作按钮 */
+    .actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--deep);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover { background: #f0f7f5; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--deep), #168c77);
+      color: #fff;
+      border: none;
+      box-shadow: 0 14px 30px rgba(18,61,53,0.18);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0f332d, #16a38b);
+      transform: translateY(-1px);
+    }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+
+    .btn-danger:hover { background: #fecaca; }
+
+    /* 波形动画 */
+    .wave-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      height: 30px;
+    }
+    .wave-bar span {
+      width: 4px;
+      background: var(--teal);
+      border-radius: 2px;
+      animation: wave 0.8s ease-in-out infinite;
+    }
+    .wave-bar span:nth-child(1) { height: 12px; animation-delay: 0s; }
+    .wave-bar span:nth-child(2) { height: 20px; animation-delay: 0.1s; }
+    .wave-bar span:nth-child(3) { height: 8px; animation-delay: 0.2s; }
+    .wave-bar span:nth-child(4) { height: 16px; animation-delay: 0.3s; }
+    .wave-bar span:nth-child(5) { height: 24px; animation-delay: 0.4s; }
+    .wave-bar span:nth-child(6) { height: 10px; animation-delay: 0.5s; }
+    .wave-bar span:nth-child(7) { height: 18px; animation-delay: 0.6s; }
+
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.5); opacity: 0.6; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+
+    .recording-hint {
+      text-align: center;
+      padding: 8px;
+      color: var(--deep);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* 记录列表 */
+    .records {
+      margin-top: 24px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .records h2 {
+      font-size: 18px;
+      color: var(--deep);
+      margin-bottom: 16px;
+    }
+
+    .record-item {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      margin-bottom: 10px;
+      background: #fffb;
+    }
+
+    .record-item:last-child { margin-bottom: 0; }
+
+    .record-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .record-header .date {
+      font-size: 12px;
+      color: var(--soft);
+    }
+
+    .record-content {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--soft);
+      font-size: 15px;
+    }
+
+    /* 响应式 */
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      .voice-row { grid-template-columns: 1fr; }
+      .voice-btn { min-height: 60px; }
+      .header { flex-direction: column; gap: 8px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- 顶部 -->
+    <div class="header">
+      <h1>🌟 星航图 · 语音记录</h1>
+      <span class="version">v3.0 独立测试版</span>
+    </div>
+
+    <!-- 服务器状态 -->
+    <div class="server-status" id="serverStatus">
+      <span class="dot checking" id="statusDot"></span>
+      <span id="statusText">正在检测服务器...</span>
+    </div>
+
+    <!-- 模式切换 -->
+    <div class="mode-tabs">
+      <button class="mode-tab" data-mode="webspeech" onclick="switchMode('webspeech')">
+        🎤 浏览器语音（免费）
+      </button>
+      <button class="mode-tab active" data-mode="whisper" onclick="switchMode('whisper')">
+        🤖 Whisper API（高精度）推荐
+      </button>
+    </div>
+
+    <!-- 输入区 -->
+    <div class="input-area">
+      <h2 id="modeTitle">🎤 浏览器语音识别（Web Speech API）</h2>
+      
+      <div class="voice-row">
+        <textarea id="obsContent" placeholder="点击右侧麦克风按钮开始语音输入...
+识别结果会实时显示在这里...
+你也可以直接打字输入"></textarea>
+        
+        <div class="voice-side">
+          <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+            <span id="voiceBtnText">开始录音</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="voice-status" id="voiceStatus"></div>
+
+      <!-- 录音波形动画（仅录制时显示） -->
+      <div id="recordingIndicator" style="display:none;">
+        <div class="recording-hint" id="recordingTimer">⏺ 录音中 0s</div>
+        <div class="wave-bar">
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" onclick="saveRecord()">💾 保存记录</button>
+        <button class="btn" onclick="clearText()">🗑️ 清空</button>
+        <button class="btn" onclick="exportData()">📤 导出数据</button>
+      </div>
+    </div>
+
+    <!-- 记录列表 -->
+    <div class="records">
+      <h2>📋 已保存的记录</h2>
+      <div id="recordsList">
+        <div class="empty-state">暂无记录，语音输入后点击"保存记录"</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =============================================
+    // 配置
+    // =============================================
+    const WHISPER_SERVER = 'https://xinghangtu-whisper-proxy-production.up.railway.app';
+    let currentMode = 'whisper';
+    let voiceInput = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+    let records = [];
+
+    // =============================================
+    // 服务器状态检测
+    // =============================================
+    async function checkServer() {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+
+      try {
+        const res = await fetch(`${WHISPER_SERVER}/health`);
+        const data = await res.json();
+        
+        if (data.status === 'ok') {
+          dot.className = 'dot connected';
+          text.textContent = `✅ Whisper 服务器已连接 (模型: ${data.model})`;
+          text.style.color = '#16a34a';
+        } else {
+          throw new Error('服务器异常');
+        }
+      } catch (err) {
+        dot.className = 'dot disconnected';
+        text.textContent = `⚠️ Whisper 服务器不可用 (${err.message})，浏览器语音模式仍可使用`;
+        text.style.color = '#dc2626';
+      }
+    }
+
+    // =============================================
+    // 模式切换
+    // =============================================
+    function switchMode(mode) {
+      currentMode = mode;
+      
+      // 更新标签样式
+      document.querySelectorAll('.mode-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.mode === mode);
+      });
+
+      // 更新标题
+      const title = document.getElementById('modeTitle');
+      if (mode === 'webspeech') {
+        title.textContent = '🎤 浏览器语音识别（Web Speech API）- 免费';
+      } else {
+        title.textContent = '🤖 Whisper API 高精度语音识别（通过 Railway 云端）';
+      }
+
+      // 如果正在录音则停止
+      if (isRecording) stopRecording();
+    }
+
+    // =============================================
+    // Web Speech API 语音输入
+    // =============================================
+    // =============================================
+    // Web Speech API 语音识别
+    // 注意：每次 start() 都需要新创建对象，不可复用
+    // 部分浏览器行为：
+    //   - Chrome 需要 HTTPS 或 localhost
+    //   - macOS 上 continuous=true 有时会在静音后自动结束
+    // =============================================
+    let webSpeechRecognition = null;
+
+    function createWebSpeech() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        showStatus('❌ 浏览器不支持语音识别，请用 Chrome', 'error');
+        return null;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'zh-CN';
+      recognition.maxAlternatives = 3;
+
+      let accumulatedFinal = '';
+
+      recognition.onstart = () => {
+        console.log('[SpeechRecognition] started');
+      };
+
+      recognition.onaudioend = () => {
+        console.log('[SpeechRecognition] audio ended');
+      };
+
+      recognition.onspeechend = () => {
+        console.log('[SpeechRecognition] speech ended');
+      };
+
+      recognition.onnomatch = () => {
+        console.log('[SpeechRecognition] no match');
+        showStatus('❌ 未识别到有效语音', 'error');
+      };
+
+      recognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) accumulatedFinal += result[0].transcript;
+        }
+
+        let displayText = accumulatedFinal;
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (!result.isFinal) displayText += result[0].transcript;
+        }
+
+        const textarea = document.getElementById('obsContent');
+        textarea.value = displayText;
+        textarea.readOnly = false;
+
+        if (accumulatedFinal) {
+          showStatus(`✅ 已识别：${accumulatedFinal}`);
+        } else {
+          showStatus(`🎤 正在聆听... ${displayText}`);
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error('[SpeechRecognition] error:', event.error);
+        if (event.error === 'no-speech' || event.error === 'aborted') return;
+        showStatus(`❌ 语音识别错误：${event.error}`, 'error');
+      };
+
+      recognition.onend = () => {
+        console.log('[SpeechRecognition] ended');
+        isRecording = false;
+        webSpeechRecognition = null;
+        updateButtonState();
+        if (accumulatedFinal) {
+          showStatus(`✅ 识别结束，共识别：${accumulatedFinal}`);
+        } else {
+          showStatus('⏸️ 已停止（可再点一次试试）');
+        }
+      };
+
+      return recognition;
+    }
+
+    // =============================================
+    // 录音计时器
+    // =============================================
+    let recordingTimer = null;
+    let recordingStartTime = 0;
+
+    function startTimer() {
+      recordingStartTime = Date.now();
+      const indicator = document.getElementById('recordingIndicator');
+      const timerText = document.getElementById('recordingTimer');
+      indicator.style.display = 'block';
+
+      recordingTimer = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+        const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const s = String(elapsed % 60).padStart(2, '0');
+        timerText.textContent = `⏺ 录音中 ${m}:${s}`;
+      }, 200);
+    }
+
+    function stopTimer() {
+      if (recordingTimer) {
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+      }
+      document.getElementById('recordingIndicator').style.display = 'none';
+    }
+
+    // =============================================
+    // Whisper API 录音
+    // =============================================
+    let whisperStream = null;
+
+    async function startWhisperRecording() {
+      try {
+        if (whisperStream) {
+          whisperStream.getTracks().forEach(t => t.stop());
+          whisperStream = null;
+        }
+
+        // 请求麦克风权限
+        whisperStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        // 选择支持的音频格式
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm';
+
+        mediaRecorder = new MediaRecorder(whisperStream, { mimeType });
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: mimeType });
+          stopTimer();
+          // 不立即关闭流，等上传完成后再关闭
+          await sendToWhisper(audioBlob);
+          if (whisperStream) {
+            whisperStream.getTracks().forEach(t => t.stop());
+            whisperStream = null;
+          }
+        };
+
+        mediaRecorder.start(250); // 每250ms收集一次数据（更流畅）
+        isRecording = true;
+        updateButtonState();
+        startTimer();
+        showStatus('🎤 正在录音... 说完点击停止');
+      } catch (err) {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          showStatus('❌ 麦克风权限被拒绝，请在浏览器设置中允许', 'error');
+        } else {
+          showStatus(`❌ 无法访问麦克风：${err.message}`, 'error');
+        }
+        if (whisperStream) {
+          whisperStream.getTracks().forEach(t => t.stop());
+          whisperStream = null;
+        }
+      }
+    }
+
+    async function sendToWhisper(audioBlob) {
+      showStatus('⏳ 正在上传并识别...（约5-15秒）');
+
+      try {
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording.webm');
+
+        const res = await fetch(`${WHISPER_SERVER}/transcribe`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || `服务器错误 ${res.status}`);
+        }
+
+        const result = await res.json();
+        
+        const textarea = document.getElementById('obsContent');
+        // 追加模式：不覆盖已有文本
+        const existing = textarea.value.trim();
+        if (existing && !textarea.value.endsWith('\n')) {
+          textarea.value += '\n';
+        }
+        textarea.value += result.transcript;
+        textarea.scrollTop = textarea.scrollHeight;
+
+        const sizeKB = (audioBlob.size / 1024).toFixed(0);
+        const duration = result.duration ? result.duration.toFixed(1) : '?';
+        showStatus(`✅ Whisper 完成！(${sizeKB}KB) 说完了继续点录音`);
+      } catch (err) {
+        showStatus(`❌ Whisper 识别失败：${err.message}`, 'error');
+      }
+    }
+
+    // =============================================
+    // 通用录音控制
+    // =============================================
+    function toggleVoice() {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    }
+
+    function startRecording() {
+      if (currentMode === 'webspeech') {
+        startWebSpeech();
+      } else {
+        startWhisperRecording();
+      }
+    }
+
+    function startWebSpeech() {
+      webSpeechRecognition = createWebSpeech();
+      if (!webSpeechRecognition) return;
+
+      try {
+        console.log('[Voice] Starting Web Speech...');
+        webSpeechRecognition.start();
+        isRecording = true;
+        updateButtonState();
+        showStatus('🎤 正在聆听... 说完话等待自动结束');
+      } catch (err) {
+        console.error('[Voice] start failed:', err);
+        showStatus(`❌ 启动失败：${err.message}`, 'error');
+        isRecording = false;
+        updateButtonState();
+      }
+    }
+
+    function stopRecording() {
+      if (currentMode === 'webspeech') {
+        if (webSpeechRecognition) {
+          try {
+            webSpeechRecognition.stop();
+            console.log('[Voice] Web Speech stopped by user');
+          } catch(e) {
+            console.log('[Voice] stop error:', e);
+          }
+        }
+        isRecording = false;
+        updateButtonState();
+      } else {
+        // Whisper 模式：停止 MediaRecorder
+        if (mediaRecorder && isRecording) {
+          mediaRecorder.stop();
+        } else {
+          // 如果已经停止了，确保UI复位
+          isRecording = false;
+          updateButtonState();
+          stopTimer();
+        }
+      }
+    }
+
+    function updateButtonState() {
+      const btn = document.getElementById('voiceBtn');
+      const text = document.getElementById('voiceBtnText');
+      
+      if (isRecording) {
+        btn.classList.add('listening');
+        text.textContent = '⏹ 停止录音';
+      } else {
+        btn.classList.remove('listening');
+        text.textContent = '🎤 开始录音';
+      }
+    }
+
+    // =============================================
+    // UI 辅助函数
+    // =============================================
+    function showStatus(msg, type = '') {
+      const el = document.getElementById('voiceStatus');
+      el.textContent = msg;
+      el.className = 'voice-status show' + (type ? ' ' + type : '');
+    }
+
+    function clearText() {
+      document.getElementById('obsContent').value = '';
+      showStatus('🗑️ 已清空', '');
+    }
+
+    // =============================================
+    // 保存记录 (localStorage)
+    // =============================================
+    function saveRecord() {
+      const content = document.getElementById('obsContent').value.trim();
+      if (!content) {
+        showStatus('⚠️ 请先输入或语音输入内容', 'error');
+        return;
+      }
+
+      const record = {
+        id: Date.now(),
+        content: content,
+        date: new Date().toISOString().slice(0, 10),
+        time: new Date().toLocaleTimeString('zh-CN'),
+        mode: currentMode
+      };
+
+      records.unshift(record);
+      localStorage.setItem('starpath_records', JSON.stringify(records));
+      renderRecords();
+      document.getElementById('obsContent').value = '';
+      showStatus('✅ 记录已保存！');
+    }
+
+    function loadRecords() {
+      try {
+        const data = localStorage.getItem('starpath_records');
+        records = data ? JSON.parse(data) : [];
+      } catch(e) { records = []; }
+      renderRecords();
+    }
+
+    function renderRecords() {
+      const list = document.getElementById('recordsList');
+      
+      if (records.length === 0) {
+        list.innerHTML = '<div class="empty-state">暂无记录，语音输入后点击"保存记录"</div>';
+        return;
+      }
+
+      list.innerHTML = records.map(record => `
+        <div class="record-item">
+          <div class="record-header">
+            <span class="date">${record.date} ${record.time || ''}</span>
+            <button class="btn" style="padding:4px 10px;font-size:12px;" onclick="deleteRecord(${record.id})">删除</button>
+          </div>
+          <div class="record-content">${escapeHtml(record.content)}</div>
+        </div>
+      `).join('');
+    }
+
+    function deleteRecord(id) {
+      records = records.filter(r => r.id !== id);
+      localStorage.setItem('starpath_records', JSON.stringify(records));
+      renderRecords();
+    }
+
+    function exportData() {
+      if (records.length === 0) {
+        showStatus('⚠️ 没有记录可导出', 'error');
+        return;
+      }
+
+      const data = {
+        exportDate: new Date().toISOString(),
+        count: records.length,
+        records: records
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `星航图语音记录_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showStatus('✅ 数据已导出！');
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // =============================================
+    // 启动
+    // =============================================
+    window.addEventListener('load', () => {
+      checkServer();
+      loadRecords();
+      // 修正Whisper模式标题（默认模式）
+      document.getElementById('modeTitle').textContent = '🤖 Whisper API 高精度语音识别（通过 Railway 云端）';
+
+      // 键盘快捷键
+      document.addEventListener('keydown', (e) => {
+        // Ctrl+Space 或 Cmd+Space: 切换录音
+        if ((e.ctrlKey || e.metaKey) && e.code === 'Space') {
+          e.preventDefault();
+          toggleVoice();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
