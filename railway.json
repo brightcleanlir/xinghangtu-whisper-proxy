@@ -1,11 +1,1 @@
-{
-  "$schema": "https://railway.app/railway.schema.json",
-  "build": {
-    "builder": "NIXPACKS"
-  },
-  "deploy": {
-    "startCommand": "python3 whisper-proxy-railway.py",
-    "restartPolicyType": "RESTART_ALWAYS",
-    "numReplicas": 1
-  }
-}
+{"$schema": "https://railway.app/railway.schema.json", "build": {"builder": "NIXPACKS"}, "deploy": {"startCommand": "python3 whisper-proxy-railway.py"}}
