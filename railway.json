@@ -5,7 +5,7 @@
   },
   "deploy": {
     "startCommand": "python3 whisper-proxy-railway.py",
-    "restartPolicyType": "ON_FAIURE",
+    "restartPolicyType": "RESTART_ALWAYS",
     "numReplicas": 1
   }
 }
